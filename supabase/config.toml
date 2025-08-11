@@ -1,0 +1,8 @@
+
+project_id = "glgvubxgigvrczrifcuv"
+
+[functions.process-pdf]
+verify_jwt = false
+
+[functions.upload-pdf]
+verify_jwt = false
