@@ -139,7 +139,7 @@ const Index: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Total Bill</p>
-                        <p className="text-2xl font-bold">${insights.summary.totalAmount.toFixed(2)}</p>
+                        <p className="text-2xl font-bold">₹{insights.summary.totalAmount.toFixed(2)}</p>
                       </div>
                       <BarChart3 className="h-8 w-8 text-primary" />
                     </div>
