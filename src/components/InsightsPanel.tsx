@@ -49,7 +49,7 @@ const InsightCard: React.FC<{ insight: Insight; delay: number }> = ({ insight, d
       insight.type === 'info' && 'border-l-blue-400 border-l-4'
     )}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2 text-white">
+        <CardTitle className="text-base flex items-center gap-2 text-blue-800">
           {getIcon()}
           {insight.title}
         </CardTitle>
@@ -219,7 +219,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights, onDownload, isG
           <CardHeader>
             <div className="flex items-center gap-2">
               <BarChart2 className="h-5 w-5 text-blue-400" />
-              <CardTitle className="text-white">Usage Comparison</CardTitle>
+              <CardTitle className="text-blue-800">Usage Comparison</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -315,7 +315,7 @@ const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights, onDownload, isG
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Sun className="h-5 w-5 text-yellow-400" />
-                <CardTitle className="text-white">Solar Efficiency</CardTitle>
+                <CardTitle className="text-blue-800">Solar Efficiency</CardTitle>
               </div>
             </CardHeader>
             <CardContent>

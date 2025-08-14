@@ -1,63 +1,86 @@
-
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import ProcessingFlow from '@/components/ProcessingFlow';
-import { BillData } from '@/utils/pdfUtils';
-import { InsightsData } from '@/utils/insightsGenerator';
-import { generatePDF } from '@/utils/pdfGenerator';
-import { FileText, BarChart3, Zap, TrendingUp, Download, Brain } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import ProcessingFlow from "@/components/ProcessingFlow";
+import { BillData } from "@/utils/pdfUtils";
+import { InsightsData } from "@/utils/insightsGenerator";
+import { generatePDF } from "@/utils/pdfGenerator";
+import {
+  FileText,
+  BarChart3,
+  Zap,
+  TrendingUp,
+  Download,
+  Brain,
+} from "lucide-react";
 
 const Index: React.FC = () => {
   const [billData, setBillData] = useState<BillData | null>(null);
   const [insights, setInsights] = useState<InsightsData | null>(null);
 
   useEffect(() => {
-    document.title = 'SolarSage — AI Electricity Bill Analyzer';
+    document.title = "SolarSage — AI Electricity Bill Analyzer";
     const ensureMeta = (name: string) => {
-      let m = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      let m = document.querySelector(
+        `meta[name="${name}"]`
+      ) as HTMLMetaElement | null;
       if (!m) {
-        m = document.createElement('meta');
-        m.setAttribute('name', name);
+        m = document.createElement("meta");
+        m.setAttribute("name", name);
         document.head.appendChild(m);
       }
       return m;
     };
-    ensureMeta('description')!.setAttribute(
-      'content',
-      'Upload your electricity bill PDF for AI-powered insights, solar performance, and savings opportunities with SolarSage.'
+    ensureMeta("description")!.setAttribute(
+      "content",
+      "Upload your electricity bill PDF for AI-powered insights, solar performance, and savings opportunities with SolarSage."
     );
-    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    let canonical = document.querySelector(
+      'link[rel="canonical"]'
+    ) as HTMLLinkElement | null;
     if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.setAttribute('rel', 'canonical');
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
       document.head.appendChild(canonical);
     }
-    canonical.setAttribute('href', `${window.location.origin}/`);
+    canonical.setAttribute("href", `${window.location.origin}/`);
   }, []);
 
-  const handleProcessingComplete = (newBillData: BillData, newInsights: InsightsData) => {
+  const handleProcessingComplete = (
+    newBillData: BillData,
+    newInsights: InsightsData
+  ) => {
     setBillData(newBillData);
     setInsights(newInsights);
   };
   const handleDownloadReport = () => {
     if (billData && insights) {
       const reportData = {
-        name: 'Solar Customer',
+        name: "Solar Customer",
         address: `${billData.location.latitude}, ${billData.location.longitude}`,
-        month: insights.summary.billingPeriod.split(' - ')[0],
+        month: insights.summary.billingPeriod.split(" - ")[0],
         consumption: billData.energyUsage.toString(),
         generation: billData.solarGeneration.toString(),
         savings: ((billData.solarGeneration || 0) * 0.15).toFixed(2),
-        neighRank: 'Top 25%',
-        topGen: insights.solar ? (insights.solar.efficiency > 80 ? 'Excellent' : 'Good') : 'Good',
-        missedSavings: insights.solar?.potentialSavings?.toString() || '0',
-        billingMode: 'Net Metering',
+        neighRank: "Top 25%",
+        topGen: insights.solar
+          ? insights.solar.efficiency > 80
+            ? "Excellent"
+            : "Good"
+          : "Good",
+        missedSavings: insights.solar?.potentialSavings?.toString() || "0",
+        billingMode: "Net Metering",
         latitude: billData.location.latitude,
-        longitude: billData.location.longitude
+        longitude: billData.location.longitude,
       };
-      
+
       generatePDF(reportData);
     }
   };
@@ -76,7 +99,9 @@ const Index: React.FC = () => {
               Analyze your electricity bill with AI
             </h1>
             <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-3xl">
-              Upload a PDF of your utility bill to get clear insights on usage, solar performance, and potential savings. No simulations — real data only.
+              Upload a PDF of your utility bill to get clear insights on usage,
+              solar performance, and potential savings. No simulations — real
+              data only.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <a href="#upload">
@@ -121,7 +146,8 @@ const Index: React.FC = () => {
                 Upload Your Electricity Bill
               </CardTitle>
               <CardDescription>
-                Upload a PDF of your electricity bill to get started with AI-powered analysis
+                Upload a PDF of your electricity bill to get started with
+                AI-powered analysis
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -138,44 +164,60 @@ const Index: React.FC = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Total Bill</p>
-                        <p className="text-2xl font-bold">₹{insights.summary.totalAmount.toFixed(2)}</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Total Bill
+                        </p>
+                        <p className="text-2xl font-bold">
+                          ₹{insights.summary.totalAmount.toFixed(2)}
+                        </p>
                       </div>
                       <BarChart3 className="h-8 w-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Usage</p>
-                        <p className="text-2xl font-bold">{insights.usage.current} kWh</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Usage
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {insights.usage.current} kWh
+                        </p>
                       </div>
                       <TrendingUp className="h-8 w-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Solar Generated</p>
-                        <p className="text-2xl font-bold">{billData.solarGeneration} kWh</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Solar Generated
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {billData.solarGeneration} kWh
+                        </p>
                       </div>
                       <Zap className="h-8 w-8 text-green-600" />
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Efficiency</p>
-                        <p className="text-2xl font-bold">{insights.solar?.efficiency.toFixed(1)}%</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Efficiency
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {insights.solar?.efficiency.toFixed(1)}%
+                        </p>
                       </div>
                       <BarChart3 className="h-8 w-8 text-blue-600" />
                     </div>
@@ -198,25 +240,41 @@ const Index: React.FC = () => {
                   <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">Actual Generation</p>
-                        <p className="text-xl font-bold">{insights.solar.actualGeneration} kWh</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Actual Generation
+                        </p>
+                        <p className="text-xl font-bold">
+                          {insights.solar.actualGeneration} kWh
+                        </p>
                       </div>
                       <div className="text-center p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">Ideal Generation</p>
-                        <p className="text-xl font-bold">{insights.solar.idealGeneration.toFixed(0)} kWh</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Ideal Generation
+                        </p>
+                        <p className="text-xl font-bold">
+                          {insights.solar.idealGeneration.toFixed(0)} kWh
+                        </p>
                       </div>
                       <div className="text-center p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">Efficiency</p>
-                        <p className="text-xl font-bold text-green-600">{insights.solar.efficiency.toFixed(1)}%</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Efficiency
+                        </p>
+                        <p className="text-xl font-bold text-green-600">
+                          {insights.solar.efficiency.toFixed(1)}%
+                        </p>
                       </div>
                     </div>
-                    
+
                     {insights.solar.efficiency < 80 && (
                       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p className="text-sm font-medium text-yellow-800">Optimization Opportunity</p>
+                        <p className="text-sm font-medium text-yellow-800">
+                          Optimization Opportunity
+                        </p>
                         <p className="text-sm text-yellow-700 mt-1">
-                          Your panels could generate an additional {insights.solar.potentialSavings.toFixed(0)} kWh 
-                          with optimal performance. Consider panel cleaning or maintenance.
+                          Your panels could generate an additional{" "}
+                          {insights.solar.potentialSavings.toFixed(0)} kWh with
+                          optimal performance. Consider panel cleaning or
+                          maintenance.
                         </p>
                       </div>
                     )}
@@ -238,15 +296,17 @@ const Index: React.FC = () => {
                       <div
                         key={index}
                         className={`p-4 rounded-lg border-l-4 ${
-                          insight.type === 'warning' 
-                            ? 'bg-yellow-50 border-yellow-400' 
-                            : insight.type === 'tip'
-                            ? 'bg-green-50 border-green-400'
-                            : 'bg-blue-50 border-blue-400'
+                          insight.type === "warning"
+                            ? "bg-yellow-50 border-yellow-800"
+                            : insight.type === "tip"
+                            ? "bg-green-50 border-green-800"
+                            : "bg-blue-50 border-blue-800"
                         }`}
                       >
                         <h3 className="font-medium mb-2">{insight.title}</h3>
-                        <p className="text-sm text-muted-foreground">{insight.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {insight.description}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -258,7 +318,8 @@ const Index: React.FC = () => {
                 <CardHeader>
                   <CardTitle>Download Report</CardTitle>
                   <CardDescription>
-                    Get a comprehensive PDF report of your electricity bill analysis
+                    Get a comprehensive PDF report of your electricity bill
+                    analysis
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -282,12 +343,13 @@ const Index: React.FC = () => {
                     </div>
                     <h3 className="font-semibold">AI Analysis</h3>
                     <p className="text-sm text-muted-foreground">
-                      Advanced AI extracts key data from your electricity bill automatically
+                      Advanced AI extracts key data from your electricity bill
+                      automatically
                     </p>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center space-y-3">
@@ -296,12 +358,13 @@ const Index: React.FC = () => {
                     </div>
                     <h3 className="font-semibold">Solar Insights</h3>
                     <p className="text-sm text-muted-foreground">
-                      Get detailed analysis of your solar panel performance and efficiency
+                      Get detailed analysis of your solar panel performance and
+                      efficiency
                     </p>
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center space-y-3">
@@ -310,7 +373,8 @@ const Index: React.FC = () => {
                     </div>
                     <h3 className="font-semibold">Usage Trends</h3>
                     <p className="text-sm text-muted-foreground">
-                      Track your energy consumption patterns and identify savings opportunities
+                      Track your energy consumption patterns and identify
+                      savings opportunities
                     </p>
                   </div>
                 </CardContent>
