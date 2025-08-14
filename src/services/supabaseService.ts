@@ -59,8 +59,17 @@ export const processPDFWithAI = async (pdfText: string, fileName: string): Promi
 }> => {
   console.log('Processing PDF with AI, text length:', pdfText.length);
 
+  // Get the current session to send auth headers
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Authentication required. Please sign in to continue.');
+  }
+
   const { data, error } = await supabase.functions.invoke('process-pdf', {
     body: { pdfText, fileName },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
 
   if (error) {

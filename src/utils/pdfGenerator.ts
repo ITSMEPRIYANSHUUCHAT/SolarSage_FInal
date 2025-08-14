@@ -89,7 +89,7 @@ export function generatePDF(data: ReportData) {
   doc.setFontSize(12);
   doc.setTextColor(0);
   doc.text('Quick Summary:', 25, 205);
-  doc.text(`Total Bill Amount: ₹${totalAmount}`, 25, 215);
+  doc.text(`Total Bill Amount: INR${totalAmount}`, 25, 215);
   doc.text(`Energy Consumed: ${consumption} kWh`, 25, 225);
 
   // Page 1 - Client Information & Bill Details
@@ -110,7 +110,7 @@ export function generatePDF(data: ReportData) {
     ['Due Date', dueDate],
     ['Tariff Category', tariffCategory],
     ['Sanctioned Load', sanctionedLoad],
-    ['Total Bill Amount', `₹${totalAmount}`]
+    ['Total Bill Amount', `INR${totalAmount}`]
   ];
 
   let yPos = 60;
@@ -131,8 +131,8 @@ export function generatePDF(data: ReportData) {
   const energyData = [
     ['Total Energy Consumed', `${consumption} kWh`],
     ['Solar Energy Generated', `${generation} kWh`],
-    ['Energy Savings', `₹${savings}`],
-    ['Missed Savings Potential', `₹${missedSavings}`]
+    ['Energy Savings', `INR${savings}`],
+    ['Missed Savings Potential', `INR${missedSavings}`]
   ];
 
   doc.setFontSize(11);
@@ -193,9 +193,9 @@ export function generatePDF(data: ReportData) {
 
   doc.setFontSize(11);
   doc.setTextColor(0);
-  doc.text(`Current monthly savings: ₹${savings}`, 20, 75);
-  doc.text(`Potential additional savings: ₹${missedSavings}`, 20, 85);
-  doc.text(`Annual savings potential: ₹${(parseFloat(savings) + parseFloat(missedSavings)) * 12}`, 20, 95);
+  doc.text(`Current monthly savings: INR${savings}`, 20, 75);
+  doc.text(`Potential additional savings: INR${missedSavings}`, 20, 85);
+  doc.text(`Annual savings potential: INR${(parseFloat(savings) + parseFloat(missedSavings)) * 12}`, 20, 95);
 
   // Next Steps Section
   doc.setFontSize(14);

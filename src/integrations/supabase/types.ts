@@ -37,6 +37,7 @@ export type Database = {
           top_gen: string | null
           total_dni: number | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           address?: string | null
@@ -60,6 +61,7 @@ export type Database = {
           top_gen?: string | null
           total_dni?: number | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           address?: string | null
@@ -82,6 +84,31 @@ export type Database = {
           savings?: string | null
           top_gen?: string | null
           total_dni?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
           updated_at?: string | null
         }
         Relationships: []

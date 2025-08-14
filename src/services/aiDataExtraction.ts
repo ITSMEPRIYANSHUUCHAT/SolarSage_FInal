@@ -1,4 +1,3 @@
-
 import { BillData } from '@/utils/pdfUtils';
 
 interface AIExtractedData {
@@ -14,12 +13,33 @@ interface AIExtractedData {
   totalAmount?: number;
   dueDate?: string;
   accountNumber?: string;
+  discomName?: string;
 }
+
+// List of known DISCOMs for validation
+const KNOWN_DISCOMS = [
+  'TORRENT POWER',
+  'PGVCL (Paschim Gujarat Vij Company)',
+  'UGVCL (Uttar Gujarat Vij Company)', 
+  'MGVCL (Madhya Gujarat Vij Company)',
+  'DGVCL (Dakshin Gujarat Vij Company)',
+  'MSEDCL',
+  'BESCOM',
+  'KSEB',
+  'TNEB'
+];
 
 // Simulate AI extraction from PDF text
 export const extractDataWithAI = async (pdfText: string): Promise<Partial<BillData>> => {
-  // In a real implementation, this would call OpenAI API or LangChain
-  // For demo purposes, we'll simulate intelligent extraction with enhanced mock data
+  // Validate if it's an electricity bill
+  const textLower = pdfText.toLowerCase();
+  const hasElectricityKeywords = [
+    'electricity', 'power', 'energy', 'kwh', 'units', 'bill', 'discom', 'tariff'
+  ].some(keyword => textLower.includes(keyword));
+  
+  if (!hasElectricityKeywords) {
+    throw new Error('This does not appear to be an electricity bill. Please upload a valid electricity bill PDF from a recognized DISCOM.');
+  }
   
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -33,14 +53,14 @@ export const extractDataWithAI = async (pdfText: string): Promise<Partial<BillDa
         previousUsage: generateRandomUsage(500, 1100),
         averageDailyUsage: generateRandomUsage(20, 40),
         location: {
-          latitude: 34.0522 + (Math.random() - 0.5) * 2, // Vary around LA
-          longitude: -118.2437 + (Math.random() - 0.5) * 2
+          latitude: 23.0225 + (Math.random() - 0.5) * 2, // Vary around Gujarat
+          longitude: 72.5714 + (Math.random() - 0.5) * 2
         },
         solarGeneration: generateRandomUsage(250, 450),
         rates: {
-          "Tier 1 (0-500 kWh)": 0.15 + Math.random() * 0.05,
-          "Tier 2 (501+ kWh)": 0.18 + Math.random() * 0.05,
-          "Peak Hours": 0.25 + Math.random() * 0.05
+          "Tier 1 (0-500 kWh)": 3.5 + Math.random() * 1.5, // Rupees per kWh
+          "Tier 2 (501+ kWh)": 4.2 + Math.random() * 1.5,
+          "Peak Hours": 6.0 + Math.random() * 2.0
         },
         charges: generateChargesBreakdown()
       };
@@ -83,25 +103,27 @@ function generateRandomUsage(min: number, max: number): number {
 }
 
 function generateChargesBreakdown(): { [key: string]: number } {
-  const baseAmount = generateRandomAmount(80, 180);
+  const baseAmount = generateRandomAmount(1200, 2800); // In rupees
   return {
     "Energy Charges": baseAmount,
-    "Distribution Fee": generateRandomAmount(10, 25),
-    "Grid Access Fee": generateRandomAmount(5, 15),
-    "Renewable Energy Fee": generateRandomAmount(3, 8),
-    "Taxes & Surcharges": generateRandomAmount(8, 20)
+    "Fixed Charges": generateRandomAmount(150, 350),
+    "Electricity Duty": generateRandomAmount(75, 180),
+    "Fuel Adjustment": generateRandomAmount(45, 120),
+    "Regulatory Charges": generateRandomAmount(25, 85),
+    "Other Charges": generateRandomAmount(30, 95)
   };
 }
 
 // Predefined queries for LangChain (for future implementation)
 export const EXTRACTION_QUERIES = [
+  "What is the DISCOM name on this electricity bill?",
   "What is the customer's name on this electricity bill?",
   "What is the billing address?",
   "What is the billing period?",
-  "What is the total amount due?",
+  "What is the total amount due in rupees?",
   "How much energy was consumed in kWh?",
   "How much solar energy was generated?",
-  "What are the different rate tiers and their costs?",
-  "What is the account number?",
+  "What are the different rate tiers and their costs in rupees per kWh?",
+  "What is the account number or consumer number?",
   "When is the payment due date?"
 ];
