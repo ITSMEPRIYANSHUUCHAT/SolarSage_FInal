@@ -35,22 +35,31 @@ export function ThemeProvider({
 
   React.useEffect(() => {
     const root = window.document.documentElement
-    
-    root.classList.remove("light", "dark")
-    
-    if (forcedTheme) {
-      root.classList.add(forcedTheme)
-      return
+
+    const apply = () => {
+      root.classList.remove("light", "dark")
+
+      if (forcedTheme) {
+        root.classList.add(forcedTheme)
+        return
+      }
+
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+
+      const resolvedTheme = theme === "system" ? systemTheme : theme
+      root.classList.add(resolvedTheme)
     }
 
-    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light"
-    
-    const resolvedTheme = theme === "system" ? systemTheme : theme
+    apply()
 
-    root.classList.add(resolvedTheme)
-    
+    // Keep "system" in sync with live OS theme changes.
+    if (theme === "system" && !forcedTheme) {
+      const mql = window.matchMedia("(prefers-color-scheme: dark)")
+      mql.addEventListener("change", apply)
+      return () => mql.removeEventListener("change", apply)
+    }
   }, [theme, forcedTheme])
 
   const value = React.useMemo(

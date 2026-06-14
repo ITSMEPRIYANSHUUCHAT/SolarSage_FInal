@@ -12,10 +12,25 @@ export interface Insight {
 }
 
 export interface SolarEfficiency {
+  /**
+   * Solar offset: % of this period's consumption covered by solar generation
+   * (0–100). Computed from real bill figures. (Previously this held a fabricated
+   * "efficiency vs ideal" that was mathematically pinned at 83.3% — see
+   * docs/calculations.md.)
+   */
   efficiency: number;
+  /** Reference baseline = consumption this period (kWh). */
   idealGeneration: number;
+  /** Solar generation this period (kWh). */
   actualGeneration: number;
+  /** kWh still drawn from grid after solar (>= 0). */
   potentialSavings: number;
+  /** ₹ saved this period = generation × effective tariff. */
+  savingsInr?: number;
+  /** kg CO2 avoided this period. */
+  co2AvoidedKg?: number;
+  /** ₹/kWh tariff used for savings. */
+  effectiveTariff?: number;
 }
 
 export interface InsightsData {

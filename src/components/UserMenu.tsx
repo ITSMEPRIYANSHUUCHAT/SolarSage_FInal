@@ -29,9 +29,9 @@ const UserMenu: React.FC = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
-          <User className="h-4 w-4" />
-          {user.email}
+        <Button variant="ghost" size="sm" className="gap-2 max-w-[180px]">
+          <User className="h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline truncate">{user.email}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

@@ -20,12 +20,12 @@ const GuestModeNotice: React.FC = () => {
 
   if (guestPdfCount >= 3) {
     return (
-      <Alert className="border-orange-200 bg-orange-50">
-        <AlertTriangle className="h-4 w-4 text-orange-600" />
+      <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/40 dark:border-orange-800">
+        <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
         <AlertDescription className="space-y-3">
           <div>
-            <p className="font-medium text-orange-800">Guest limit reached!</p>
-            <p className="text-sm text-orange-700">
+            <p className="font-medium text-orange-800 dark:text-orange-200">Guest limit reached!</p>
+            <p className="text-sm text-orange-700 dark:text-orange-300">
               You've analyzed 3 bills as a guest. Sign up to get unlimited access to advanced AI insights.
             </p>
           </div>
@@ -39,17 +39,17 @@ const GuestModeNotice: React.FC = () => {
   }
 
   return (
-    <Alert className="border-blue-200 bg-blue-50">
-      <Clock className="h-4 w-4 text-blue-600" />
+    <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-800">
+      <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
       <AlertDescription className="space-y-3">
         <div>
-          <p className="font-medium text-blue-800">Guest Mode</p>
-          <p className="text-sm text-blue-700">
+          <p className="font-medium text-blue-800 dark:text-blue-200">Guest Mode</p>
+          <p className="text-sm text-blue-700 dark:text-blue-300">
             You have {remainingUploads} free analysis{remainingUploads !== 1 ? 'es' : ''} remaining.
           </p>
         </div>
         <div className="space-y-2">
-          <div className="flex justify-between text-xs text-blue-600">
+          <div className="flex justify-between text-xs text-blue-600 dark:text-blue-400">
             <span>{guestPdfCount}/3 used</span>
             <span>{remainingUploads} remaining</span>
           </div>

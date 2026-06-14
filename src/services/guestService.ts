@@ -77,25 +77,29 @@ export const processPDFWithAIAsGuest = async (
       largestExpense: 'Energy Charges'
     },
     solar: {
-      efficiency: 85.2,
-      idealGeneration: 375,
+      // Sample values, internally consistent: 320 kWh solar vs 450 kWh usage.
+      efficiency: 71,            // solar offset % of usage (320/450)
+      idealGeneration: 450,      // reference baseline = usage
       actualGeneration: 320,
-      potentialSavings: 55
+      potentialSavings: 130,     // kWh still from grid (450 - 320)
+      savingsInr: 2240,          // 320 kWh × ₹7/kWh
+      co2AvoidedKg: 227,         // 320 kWh × 0.71
+      effectiveTariff: 7
     },
     insights: [
       {
-        title: "Guest Mode Demo",
-        description: `This is a demo analysis showing how your bill would be analyzed. Sign up to get real AI-powered insights from your electricity bills.`,
-        type: "info"
+        title: "Sample data — not your bill",
+        description: `Guest mode shows illustrative numbers so you can see the layout. Sign up to analyze your real electricity bill with AI.`,
+        type: "warning"
       },
       {
         title: "Solar Performance",
-        description: "Your solar system is performing at 85.2% efficiency compared to ideal conditions.",
+        description: "In this sample, solar covers 71% of usage, saving about ₹2,240 and avoiding ~227 kg CO₂.",
         type: "info"
       },
       {
         title: "Usage Increase",
-        description: "Your energy usage increased by 18.4% compared to last month.",
+        description: "Sample usage increased by 18.4% compared to last month.",
         type: "warning"
       }
     ]

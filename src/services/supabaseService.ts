@@ -33,8 +33,17 @@ export const uploadPDF = async (file: File): Promise<{ extractedText: string; fi
 
   console.log('Uploading PDF file:', file.name);
 
+  // upload-pdf now requires authentication (SEC-02); attach the session token.
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Authentication required. Please sign in to upload a bill.');
+  }
+
   const { data, error } = await supabase.functions.invoke('upload-pdf', {
     body: formData,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
 
   if (error) {

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from '@/contexts/AuthContext';
+import ThemeToggle from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 import { Loader2, Zap, Brain, TrendingUp, ArrowLeft } from 'lucide-react';
 
@@ -58,8 +59,15 @@ const Auth: React.FC = () => {
     const password = formData.get('password') as string;
     const fullName = formData.get('fullName') as string;
 
-    if (password.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+    // Client-side guard. NOTE: enforce equivalently in Supabase Auth settings
+    // (min length + leaked-password protection) since this can be bypassed (SEC-06).
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      setIsSubmitting(false);
+      return;
+    }
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      toast.error('Password must include at least one letter and one number');
       setIsSubmitting(false);
       return;
     }
@@ -108,15 +116,17 @@ const Auth: React.FC = () => {
       <header className="bg-gradient-to-b from-primary/15 via-background to-background border-b border-border/40">
         <div className="container mx-auto px-4 py-10">
           <div className="max-w-2xl mx-auto">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleBackToLanding}
-              className="mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToLanding}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+              <ThemeToggle />
+            </div>
             <div className="text-center">
               <span className="inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
                 <Zap className="h-3.5 w-3.5 text-primary" />

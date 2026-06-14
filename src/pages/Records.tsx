@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import CustomerRecords from '@/components/CustomerRecords';
 import UserMenu from '@/components/UserMenu';
+import ThemeToggle from '@/components/ThemeToggle';
 import { ChevronLeft, FileText } from 'lucide-react';
 
 const Records: React.FC = () => {
@@ -17,10 +18,14 @@ const Records: React.FC = () => {
               <Link to="/">
                 <Button variant="ghost" size="sm" className="gap-1">
                   <ChevronLeft className="h-4 w-4" />
-                  Back to Analyzer
+                  <span className="hidden sm:inline">Back to Analyzer</span>
+                  <span className="sm:hidden">Back</span>
                 </Button>
               </Link>
-              <UserMenu />
+              <div className="flex items-center gap-1 sm:gap-2">
+                <ThemeToggle />
+                <UserMenu />
+              </div>
             </div>
             
             <div className="flex items-center gap-3 mb-4">

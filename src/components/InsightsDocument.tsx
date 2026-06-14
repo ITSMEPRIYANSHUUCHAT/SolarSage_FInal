@@ -5,7 +5,6 @@ import { generatePDF } from '@/utils/pdfGenerator';
 import { toast } from 'sonner';
 import { getSolcastApiKey } from '@/utils/solcastApi';
 import { BillData } from '@/utils/pdfUtils';
-import { createCustomerInfo, convertToCustomerInfo } from '@/services/customerService';
 
 interface InsightsDocumentProps {
   insights: InsightsData;
@@ -40,17 +39,13 @@ const InsightsDocument: React.FC<InsightsDocumentProps> = ({
       
       // Generate PDF using jsPDF
       generatePDF(reportData);
-      
-      // Save data to database
-      try {
-        const customerData = convertToCustomerInfo(billData, insights);
-        await createCustomerInfo(customerData);
-        toast.success('Report generated and data saved successfully!');
-      } catch (dbError) {
-        console.error('Error saving to database:', dbError);
-        toast.error('PDF generated but failed to save data to database');
-      }
-      
+
+      // NOTE: The analyzed record is already persisted server-side by the
+      // `process-pdf` edge function (see services/supabaseService.ts). The
+      // previous client-side Mongoose save was removed because mongoose cannot
+      // run in a browser and crashed this flow. See docs/fixes/fix-log.md FIX-01.
+      toast.success('Report generated successfully!');
+
       onComplete();
     } catch (error) {
       console.error('Error generating PDF report:', error);

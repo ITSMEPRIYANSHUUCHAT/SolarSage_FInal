@@ -2,7 +2,12 @@
 project_id = "glgvubxgigvrczrifcuv"
 
 [functions.process-pdf]
+# Auth is verified manually inside the function so it can return JSON 401s.
 verify_jwt = false
 
 [functions.upload-pdf]
+# Auth is verified manually inside the function (SEC-02).
+verify_jwt = false
+
+[functions.health]
 verify_jwt = false

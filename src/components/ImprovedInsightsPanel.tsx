@@ -145,62 +145,87 @@ const ImprovedInsightsPanel: React.FC<ImprovedInsightsPanelProps> = ({
               Solar Performance Analysis
             </CardTitle>
             <CardDescription className="text-amber-700 dark:text-amber-300">
-              Your solar panels generated {insights.solar.actualGeneration} kWh this month
+              Your solar generated {insights.solar.actualGeneration} kWh this period
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">Efficiency Rating</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-card border rounded-lg">
+                <p className="text-sm font-medium text-muted-foreground">Solar Offset</p>
                 <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                  {insights.solar.efficiency.toFixed(1)}%
+                  {insights.solar.efficiency.toFixed(0)}%
                 </p>
-                <Progress 
-                  value={insights.solar.efficiency > 100 ? 100 : insights.solar.efficiency} 
-                  className="mt-2" 
+                <p className="text-xs text-muted-foreground">of your usage</p>
+                <Progress
+                  value={insights.solar.efficiency > 100 ? 100 : insights.solar.efficiency}
+                  className="mt-2"
                 />
               </div>
-              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">Actual Generation</p>
+              <div className="text-center p-4 bg-card border rounded-lg">
+                <p className="text-sm font-medium text-muted-foreground">Generation</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {insights.solar.actualGeneration} kWh
                 </p>
+                <p className="text-xs text-muted-foreground">this period</p>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">Expected Generation</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {insights.solar.idealGeneration.toFixed(0)} kWh
+              <div className="text-center p-4 bg-card border rounded-lg">
+                <p className="text-sm font-medium text-muted-foreground">Est. Savings</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {insights.solar.savingsInr != null
+                    ? formatCurrency(insights.solar.savingsInr)
+                    : '—'}
                 </p>
+                {insights.solar.effectiveTariff != null && (
+                  <p className="text-xs text-muted-foreground">
+                    @ ₹{insights.solar.effectiveTariff}/kWh
+                  </p>
+                )}
+              </div>
+              <div className="text-center p-4 bg-card border rounded-lg">
+                <p className="text-sm font-medium text-muted-foreground">CO₂ Avoided</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {insights.solar.co2AvoidedKg != null
+                    ? `${insights.solar.co2AvoidedKg} kg`
+                    : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground">vs grid power</p>
               </div>
             </div>
 
-            {insights.solar.efficiency < 80 && (
-              <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">
-                  Performance Alert
+            {insights.solar.efficiency < 50 && (
+              <div className="p-4 bg-amber-100/60 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 rounded-lg">
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                  Room to grow
                 </h4>
-                <p className="text-red-700 dark:text-red-300 text-sm">
-                  Your solar panels are performing below optimal levels. Consider panel cleaning, 
-                  maintenance check, or system inspection to improve performance.
+                <p className="text-amber-700 dark:text-amber-300 text-sm">
+                  Solar covered under half of your usage this period. Shifting heavy
+                  appliances to daylight hours and keeping panels clean can raise your
+                  self-consumption.
                 </p>
               </div>
             )}
+            <p className="text-xs text-muted-foreground">
+              Solar offset, savings and CO₂ are calculated from your bill's generation,
+              consumption and tariff. Savings use {insights.solar.effectiveTariff != null
+                ? `₹${insights.solar.effectiveTariff}/kWh`
+                : 'a typical tariff'}. See docs/calculations.md for the formulas.
+            </p>
           </CardContent>
         </Card>
       )}
 
       {/* Tabbed Content */}
       <Tabs defaultValue="insights" className="space-y-6">
-        <div className="flex items-center justify-between">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-            <TabsTrigger value="insights">Key Insights</TabsTrigger>
-            <TabsTrigger value="breakdown">Cost Breakdown</TabsTrigger>
-            <TabsTrigger value="comparator">Solar Ranking</TabsTrigger>
-            <TabsTrigger value="recommendations">Tips</TabsTrigger>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto lg:w-[600px]">
+            <TabsTrigger value="insights" className="text-xs sm:text-sm whitespace-normal py-2">Key Insights</TabsTrigger>
+            <TabsTrigger value="breakdown" className="text-xs sm:text-sm whitespace-normal py-2">Cost Breakdown</TabsTrigger>
+            <TabsTrigger value="comparator" className="text-xs sm:text-sm whitespace-normal py-2">Solar Ranking</TabsTrigger>
+            <TabsTrigger value="recommendations" className="text-xs sm:text-sm whitespace-normal py-2">Tips</TabsTrigger>
           </TabsList>
-          
+
           {onDownload && (
-            <Button onClick={onDownload} disabled={isGeneratingDocument} className="gap-2">
+            <Button onClick={onDownload} disabled={isGeneratingDocument} className="gap-2 w-full lg:w-auto shrink-0">
               {isGeneratingDocument ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />

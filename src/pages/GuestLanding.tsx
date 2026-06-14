@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from '@/components/ThemeToggle';
 import { Zap, Brain, TrendingUp, FileText, Clock, Users } from 'lucide-react';
 
 const GuestLanding: React.FC = () => {
@@ -23,7 +24,12 @@ const GuestLanding: React.FC = () => {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <header className="bg-gradient-to-b from-primary/15 via-background to-background border-b border-border/40">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 pt-4">
+          <div className="flex justify-end">
+            <ThemeToggle />
+          </div>
+        </div>
+        <div className="container mx-auto px-4 pb-16 pt-4">
           <div className="max-w-4xl mx-auto text-center">
             <span className="inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 mb-6">
               <Zap className="h-3.5 w-3.5 text-primary" />

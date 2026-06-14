@@ -5,7 +5,7 @@ import './index.css'
 import { ThemeProvider } from '@/components/theme-provider'
 
 createRoot(document.getElementById("root")!).render(
-  <ThemeProvider defaultTheme="dark" forcedTheme="dark">
+  <ThemeProvider defaultTheme="system" storageKey="solarsage-theme">
     <App />
   </ThemeProvider>
 );

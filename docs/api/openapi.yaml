@@ -1,0 +1,164 @@
+openapi: 3.0.3
+info:
+  title: SolarSage Edge Functions API
+  version: "1.0.0"
+  description: >
+    Supabase Edge Functions for SolarSage. Note: the rest of the data API is
+    PostgREST over the customer_info / profiles tables (governed by RLS) and is
+    not described here. Reverse-engineered from supabase/functions/*.
+servers:
+  - url: https://glgvubxgigvrczrifcuv.supabase.co/functions/v1
+    description: Supabase project (glgvubxgigvrczrifcuv)
+paths:
+  /upload-pdf:
+    post:
+      operationId: uploadPdf
+      summary: Extract text from a PDF and archive the original in storage
+      description: >
+        No authentication is enforced (verify_jwt=false and no manual check).
+        No file size or MIME validation exists in code. SECURITY RISK.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        "200":
+          description: Text extracted (storagePath omitted if storage upload failed)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  extractedText: { type: string }
+                  fileName: { type: string }
+                  storagePath: { type: string, nullable: true }
+        "400":
+          description: No file provided
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        "500":
+          description: Extraction failed (e.g. fewer than 50 characters of text)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /process-pdf:
+    post:
+      operationId: processPdf
+      summary: Extract structured bill data via OpenAI and persist a customer_info row
+      security:
+        - SupabaseBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pdfText: { type: string, description: Non-empty bill text }
+                fileName: { type: string }
+              required: [pdfText]
+      responses:
+        "200":
+          description: Structured bill data, insights, and persisted DB record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  billData: { type: object, additionalProperties: true }
+                  insights: { $ref: '#/components/schemas/Insights' }
+                  dbRecord: { $ref: '#/components/schemas/CustomerInfo' }
+        "500":
+          description: >
+            Validation failed, auth failed, OpenAI error, unparsable model
+            output, or DB insert error. Note the API returns 500 for client
+            errors (e.g. invalid bill / missing auth) — see api-reference.md.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  securitySchemes:
+    SupabaseBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase access_token from auth.getSession()
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        success: { type: boolean, example: false }
+    Insights:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalAmount: { type: number }
+            dueDate: { type: string }
+            billingPeriod: { type: string }
+            discomName: { type: string }
+        usage:
+          type: object
+          properties:
+            current: { type: number }
+            previous: { type: number }
+            change: { type: number }
+            averageDaily: { type: number }
+        costs:
+          type: object
+          properties:
+            breakdown: { type: object, additionalProperties: { type: number } }
+            largestExpense: { type: string }
+        solar:
+          type: object
+          nullable: true
+          properties:
+            efficiency: { type: number }
+            idealGeneration: { type: number }
+            actualGeneration: { type: number }
+            potentialSavings: { type: number }
+        insights:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              description: { type: string }
+              type: { type: string, enum: [info, warning, tip] }
+    CustomerInfo:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        name: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        month: { type: string, nullable: true }
+        consumption: { type: string, nullable: true }
+        generation: { type: string, nullable: true }
+        savings: { type: string, nullable: true }
+        neigh_rank: { type: string, nullable: true }
+        top_gen: { type: string, nullable: true }
+        missed_savings: { type: number, nullable: true }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        billing_date: { type: string, nullable: true }
+        billing_mode: { type: string, nullable: true }
+        total_dni: { type: number, nullable: true }
+        d_value: { type: number, nullable: true }
+        e_value: { type: number, nullable: true }
+        f_value: { type: number, nullable: true }
+        g_value: { type: number, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }

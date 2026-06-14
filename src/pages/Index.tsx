@@ -7,6 +7,7 @@ import ProcessingFlow from '@/components/ProcessingFlow';
 import ImprovedInsightsPanel from '@/components/ImprovedInsightsPanel';
 import PDFViewer from '@/components/PDFViewer';
 import UserMenu from '@/components/UserMenu';
+import ThemeToggle from '@/components/ThemeToggle';
 import GuestModeNotice from '@/components/GuestModeNotice';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -149,21 +150,24 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
                   <Zap className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <h1 className="text-xl font-bold">SolarSage</h1>
+                <h1 className="text-lg sm:text-xl font-bold truncate">SolarSage</h1>
               </div>
               {isGuest && (
-                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">
-                  Guest Mode
+                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 rounded-full font-medium shrink-0">
+                  Guest
                 </span>
               )}
             </div>
-            {!isGuest && <UserMenu />}
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <ThemeToggle />
+              {!isGuest && <UserMenu />}
+            </div>
           </div>
         </div>
       </header>
@@ -229,7 +233,21 @@ const Index = () => {
             </Card>
           </div>
         ) : (
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {isGuest && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-800 p-4 flex items-start gap-3">
+                <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-800 dark:text-amber-200">
+                    Sample data — not a real analysis
+                  </p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Guest mode shows illustrative numbers so you can explore the interface.
+                    Sign up to analyze your actual electricity bill with AI.
+                  </p>
+                </div>
+              </div>
+            )}
             <Tabs defaultValue="insights" className="space-y-6">
               <div className="flex items-center justify-between">
                 <TabsList>

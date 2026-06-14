@@ -2,8 +2,15 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://glgvubxgigvrczrifcuv.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZ3Z1YnhnaWd2cmN6cmlmY3V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDA5MDYsImV4cCI6MjA3MDA3NjkwNn0.FbH7JHf2zOJHF2KuYcyP2hepU4SCI8KQ5CWCcLs-98w";
+// Per-environment config (FIX-03). Falls back to the original project values so
+// existing builds keep working without an .env file. The anon/publishable key is
+// public by design (RLS enforces access), so shipping it in the bundle is safe.
+// See docs/deployment/environment-variables.md.
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ?? "https://glgvubxgigvrczrifcuv.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsZ3Z1YnhnaWd2cmN6cmlmY3V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1MDA5MDYsImV4cCI6MjA3MDA3NjkwNn0.FbH7JHf2zOJHF2KuYcyP2hepU4SCI8KQ5CWCcLs-98w";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
