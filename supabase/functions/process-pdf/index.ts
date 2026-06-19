@@ -2,6 +2,9 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { buildCorsHeaders, HttpError, requireEnv, jsonResponse, errorStatus } from "../_shared/http.ts";
+import { createLogger } from "../_shared/log.ts";
+import { enforce, RULES, clientIp } from "../_shared/rateLimit.ts";
+import { validate, ProcessPdfBody } from "../_shared/validate.ts";
 
 // List of known DISCOMs (Distribution Companies) in India
 const KNOWN_DISCOMS = [
@@ -79,45 +82,44 @@ serve(async (req) => {
     return new Response(null, { headers: cors });
   }
 
+  const log = createLogger('process-pdf', req);
+
   try {
-    const { pdfText, fileName } = await req.json();
+    // Fail-fast on missing secrets; service-role client used for RPC + DB.
+    const supabase = createClient(
+      requireEnv('SUPABASE_URL'),
+      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+    );
 
-    console.log('Processing PDF:', fileName);
-    console.log('PDF Text length:', pdfText?.length || 0);
+    // Layer 1: global per-IP flood guard (before any heavy work).
+    await enforce(supabase, RULES.global, clientIp(req));
 
-    if (!pdfText || pdfText.trim().length === 0) {
-      throw new HttpError(400, 'No valid PDF content to process');
-    }
+    // Validate the request body (schema + size bounds).
+    const body = validate(ProcessPdfBody, await req.json().catch(() => ({})));
+    const pdfText = body.pdfText;
+    log.info('request_received', { fileNameLen: body.fileName?.length ?? 0, textLen: pdfText.length });
 
     const validation = validateElectricityBill(pdfText);
     if (!validation.isValid) {
       throw new HttpError(422, validation.reason || 'Invalid electricity bill format');
     }
 
-    console.log('PDF validated as electricity bill');
-
-    // Get the authorization header to identify the user
+    // Authn: identify the user from the bearer token.
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       throw new HttpError(401, 'Authentication required');
     }
-
-    // Initialize Supabase client with service role for database operations (fail-fast on missing secrets).
-    const supabase = createClient(
-      requireEnv('SUPABASE_URL'),
-      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
-    );
-
-    // Get the user from the auth token
     const { data: { user }, error: userError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
-
     if (userError || !user) {
       throw new HttpError(401, 'Invalid authentication token');
     }
 
-    console.log('Processing for user:', user.id);
+    // Layer 2: per-user AI/cost limit (fail-closed — protects OpenAI spend).
+    await enforce(supabase, RULES.processPdf, user.id, { failClosed: true });
+
+    log.info('processing', { userId: user.id });
 
     const openAIKey = requireEnv('OPENAI_API_KEY');
 
@@ -166,18 +168,18 @@ serve(async (req) => {
     try {
       aiResponse = await callOpenAI();
       if (!aiResponse.ok && (aiResponse.status === 429 || aiResponse.status >= 500)) {
-        console.warn('OpenAI transient error, retrying once:', aiResponse.status);
+        log.warn('openai_transient_retry', { status: aiResponse.status });
         await new Promise((r) => setTimeout(r, 1200));
         aiResponse = await callOpenAI();
       }
     } catch (e) {
-      console.error('OpenAI request failed:', e);
+      log.error('openai_request_failed', { error: String(e) });
       throw new HttpError(504, 'AI service timed out. Please try again.');
     }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('OpenAI API error:', errorText);
+      log.error('openai_api_error', { status: aiResponse.status, detailLen: errorText.length });
       throw new HttpError(502, `OpenAI API error: ${aiResponse.status} ${aiResponse.statusText}`);
     }
 
@@ -186,7 +188,7 @@ serve(async (req) => {
 
     try {
       let aiContent = aiData.choices[0].message.content;
-      console.log('AI response length:', aiContent?.length ?? 0); // don't log PII content
+      log.info('ai_response', { length: aiContent?.length ?? 0 }); // length only, no PII content
 
       // response_format=json_object should return clean JSON; strip fences defensively.
       aiContent = aiContent.replace(/```json\s*/, '').replace(/```\s*$/, '').trim();
@@ -198,7 +200,7 @@ serve(async (req) => {
       }
 
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
+      log.error('ai_parse_failed', { error: String(parseError) });
       if (parseError instanceof HttpError) throw parseError;
       throw new HttpError(422, 'Failed to extract valid data from the electricity bill. Please ensure the PDF contains a valid electricity bill from a recognized DISCOM.');
     }
@@ -285,7 +287,7 @@ serve(async (req) => {
       .single();
 
     if (dbError) {
-      console.error('Database error:', dbError);
+      log.error('db_insert_failed', { error: dbError.message });
       throw new Error('Failed to save customer data');
     }
 
@@ -335,7 +337,7 @@ serve(async (req) => {
       ]
     };
 
-    console.log('Successfully processed PDF and generated insights for user:', user.id);
+    log.info('success', { userId: user.id });
 
     return jsonResponse({
       success: true,
@@ -346,7 +348,7 @@ serve(async (req) => {
 
   } catch (error) {
     const { status, message } = errorStatus(error);
-    if (status >= 500) console.error('Error in process-pdf function:', error);
+    log.log(status >= 500 ? 'error' : 'warn', 'request_failed', { status, message });
     return jsonResponse({ error: message, success: false }, status, cors);
   }
 });

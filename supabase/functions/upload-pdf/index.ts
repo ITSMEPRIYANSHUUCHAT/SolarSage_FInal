@@ -3,6 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import * as pdfjsLib from "npm:pdfjs-dist@4.2.67";
 import { buildCorsHeaders, HttpError, requireEnv, jsonResponse, errorStatus } from "../_shared/http.ts";
+import { createLogger } from "../_shared/log.ts";
+import { enforce, RULES, clientIp } from "../_shared/rateLimit.ts";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -20,7 +22,6 @@ async function extractTextFromPDF(fileBuffer: Uint8Array): Promise<string> {
 
     return fullText.trim();
   } catch (error) {
-    console.error('Error extracting text from PDF:', error);
     throw new HttpError(422, 'Failed to extract text from PDF');
   }
 }
@@ -31,20 +32,28 @@ serve(async (req) => {
     return new Response(null, { headers: cors });
   }
 
-  try {
-    // SEC-02: require an authenticated user (was fully open before).
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) throw new HttpError(401, 'Authentication required');
+  const log = createLogger('upload-pdf', req);
 
+  try {
     const supabase = createClient(
       requireEnv('SUPABASE_URL'),
       requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
     );
 
+    // Layer 1: global per-IP flood guard.
+    await enforce(supabase, RULES.global, clientIp(req));
+
+    // SEC-02: require an authenticated user (was fully open before).
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) throw new HttpError(401, 'Authentication required');
+
     const { data: { user }, error: userError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', ''),
     );
     if (userError || !user) throw new HttpError(401, 'Invalid authentication token');
+
+    // Layer 2: per-user upload limit (10/hour).
+    await enforce(supabase, RULES.uploadPdf, user.id);
 
     // Parse the form data
     const formData = await req.formData();
@@ -57,7 +66,7 @@ serve(async (req) => {
     if (!isPdf) throw new HttpError(400, 'Only PDF files are accepted');
     if (file.size > MAX_BYTES) throw new HttpError(413, 'File too large (max 10 MB)');
 
-    console.log('Processing file for user:', user.id, 'name:', file.name, 'size:', file.size);
+    log.info('upload_received', { userId: user.id, size: file.size });
 
     const fileBuffer = new Uint8Array(await file.arrayBuffer());
     const extractedText = await extractTextFromPDF(fileBuffer);
@@ -69,7 +78,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Successfully extracted text, length:', extractedText.length);
+    log.info('text_extracted', { length: extractedText.length });
 
     // SEC-01: store under a per-user path in the (now private) bucket.
     const safeName = file.name.replace(/[^\w.\-]/g, '_');
@@ -84,7 +93,7 @@ serve(async (req) => {
     if (uploadError) {
       // FAIL-07: surface (don't silently swallow) but don't fail the whole request —
       // text extraction succeeded and is what the next step needs.
-      console.error('Storage upload error:', uploadError);
+      log.warn('storage_upload_failed', { error: uploadError.message });
     }
 
     return jsonResponse({
@@ -97,7 +106,7 @@ serve(async (req) => {
 
   } catch (error) {
     const { status, message } = errorStatus(error);
-    if (status >= 500) console.error('Error in upload-pdf function:', error);
+    log.log(status >= 500 ? 'error' : 'warn', 'request_failed', { status, message });
     return jsonResponse({ error: message, success: false }, status, cors);
   }
 });

@@ -20,5 +20,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Required for OAuth (Google): exchange the ?code=/#access_token in the
+    // redirect URL for a session automatically. PKCE is the secure default flow.
+    detectSessionInUrl: true,
+    flowType: 'pkce',
   }
 });

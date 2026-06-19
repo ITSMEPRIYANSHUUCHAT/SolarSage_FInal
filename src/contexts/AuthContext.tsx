@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -36,37 +37,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [guestPdfCount, setGuestPdfCount] = useState(0);
 
   useEffect(() => {
-    // Check for guest mode in localStorage
-    const guestMode = localStorage.getItem('guest_mode');
-    const pdfCount = parseInt(localStorage.getItem('guest_pdf_count') || '0');
-    
-    if (guestMode === 'true') {
-      setIsGuest(true);
-      setGuestPdfCount(pdfCount);
-      setLoading(false);
-      return;
+    // Surface OAuth errors returned in the redirect URL (e.g. access denied or
+    // a misconfigured provider) then clean them from the address bar.
+    const search = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const oauthError =
+      search.get('error_description') || search.get('error') ||
+      hash.get('error_description') || hash.get('error');
+    if (oauthError) {
+      toast.error(decodeURIComponent(oauthError).replace(/\+/g, ' '));
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // Set up auth state listener first
+    // Always set up the auth listener FIRST so OAuth redirects (Google) are
+    // processed even if a stale guest_mode flag is in localStorage. A real
+    // session always wins over guest mode.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setIsGuest(false);
-        setLoading(false);
-        
-        // Clear guest mode when user logs in
         if (session) {
+          // Real auth wins — clear any guest state.
+          setIsGuest(false);
+          setGuestPdfCount(0);
           localStorage.removeItem('guest_mode');
           localStorage.removeItem('guest_pdf_count');
         }
+        setLoading(false);
       }
     );
 
-    // Then check for existing session
+    // Resolve the initial state. detectSessionInUrl handles the OAuth callback,
+    // so getSession() returns the freshly-exchanged session after a Google login.
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        setIsGuest(false);
+      } else if (localStorage.getItem('guest_mode') === 'true') {
+        // Only fall back to guest mode when there is no authenticated session.
+        setIsGuest(true);
+        setGuestPdfCount(parseInt(localStorage.getItem('guest_pdf_count') || '0'));
+      }
       setLoading(false);
     });
 
@@ -96,11 +108,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
+    // Leaving guest mode first so the post-redirect session isn't shadowed by a
+    // stale guest flag.
+    localStorage.removeItem('guest_mode');
+    localStorage.removeItem('guest_pdf_count');
+    setIsGuest(false);
+    setGuestPdfCount(0);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`
-      }
+        redirectTo: `${window.location.origin}/`,
+        queryParams: {
+          // Always show the account chooser rather than silently reusing one.
+          prompt: 'select_account',
+        },
+      },
     });
     return { error };
   };

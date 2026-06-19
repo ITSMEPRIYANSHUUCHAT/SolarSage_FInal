@@ -38,6 +38,8 @@ export interface InsightsData {
     totalAmount: number;
     dueDate: string;
     billingPeriod: string;
+    /** DISCOM name (populated by the process-pdf edge function). */
+    discomName?: string;
   };
   usage: {
     current: number;

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UploadArea from '@/components/UploadArea';
 import ProcessingFlow from '@/components/ProcessingFlow';
@@ -15,7 +16,7 @@ import { BillData } from '@/utils/pdfUtils';
 import { InsightsData } from '@/utils/insightsGenerator';
 import { uploadPDF, processPDFWithAI } from '@/services/supabaseService';
 import { processPDFWithAIAsGuest } from '@/services/guestService';
-import { Zap, Upload, FileText, BarChart3 } from 'lucide-react';
+import { Zap, Upload, FileText, BarChart3, CheckCircle2, Building2, RotateCcw } from 'lucide-react';
 
 const Index = () => {
   const { isGuest, guestPdfCount, incrementGuestPdfCount } = useAuth();
@@ -248,37 +249,65 @@ const Index = () => {
                 </div>
               </div>
             )}
-            <Tabs defaultValue="insights" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <TabsList>
-                  <TabsTrigger value="insights">Insights</TabsTrigger>
-                  <TabsTrigger value="document">Original Bill</TabsTrigger>
-                </TabsList>
-                {!isGuest && (
-                  <button
-                    onClick={handleNewUpload}
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Analyze New Bill
-                  </button>
-                )}
+            {/* Results header */}
+            <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base font-semibold tracking-tight">Analysis results</h2>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Complete
+                    </span>
+                  </div>
+                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-muted-foreground">
+                    {insights?.summary.discomName && insights.summary.discomName !== 'Unknown DISCOM' && (
+                      <span className="inline-flex items-center gap-1">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {insights.summary.discomName}
+                        <span className="text-muted-foreground/50">·</span>
+                      </span>
+                    )}
+                    <span className="truncate">{fileName || 'Electricity bill'}</span>
+                  </p>
+                </div>
               </div>
-              
+              {!isGuest && (
+                <Button variant="outline" size="sm" onClick={handleNewUpload} className="gap-2 shrink-0">
+                  <RotateCcw className="h-4 w-4" />
+                  New analysis
+                </Button>
+              )}
+            </div>
+
+            <Tabs defaultValue="insights" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2 sm:inline-flex sm:w-auto">
+                <TabsTrigger value="insights" className="gap-1.5">
+                  <BarChart3 className="h-4 w-4" /> Insights
+                </TabsTrigger>
+                <TabsTrigger value="document" className="gap-1.5">
+                  <FileText className="h-4 w-4" /> Original bill
+                </TabsTrigger>
+              </TabsList>
+
               <TabsContent value="insights">
                 {insights && (
-                  <ImprovedInsightsPanel 
+                  <ImprovedInsightsPanel
                     insights={insights}
                     onDownload={handleDownloadReport}
                     isGeneratingDocument={isGeneratingDocument}
                   />
                 )}
               </TabsContent>
-              
+
               <TabsContent value="document">
                 {uploadedFile && (
-                  <PDFViewer 
-                    file={uploadedFile} 
-                    onClose={handleClosePDFViewer} 
+                  <PDFViewer
+                    file={uploadedFile}
+                    onClose={handleClosePDFViewer}
                   />
                 )}
               </TabsContent>

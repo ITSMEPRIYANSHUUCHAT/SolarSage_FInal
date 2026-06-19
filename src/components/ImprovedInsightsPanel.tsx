@@ -1,22 +1,21 @@
-
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Zap, 
-  Sun, 
-  AlertTriangle, 
-  CheckCircle, 
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Zap,
+  Sun,
+  AlertTriangle,
+  CheckCircle2,
   Download,
-  DollarSign,
-  Calendar,
-  BarChart3
+  IndianRupee,
+  CalendarDays,
+  Gauge,
+  Leaf,
+  Lightbulb,
+  Info,
 } from 'lucide-react';
 import { InsightsData } from '@/utils/insightsGenerator';
 import SolarComparator from './SolarComparator';
@@ -27,360 +26,403 @@ interface ImprovedInsightsPanelProps {
   isGeneratingDocument?: boolean;
 }
 
-const ImprovedInsightsPanel: React.FC<ImprovedInsightsPanelProps> = ({ 
-  insights, 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+const formatNumber = (n: number) => new Intl.NumberFormat('en-IN').format(n);
+
+/* ----------------------------- building blocks ----------------------------- */
+
+type Accent = 'primary' | 'emerald' | 'amber' | 'sky' | 'rose';
+
+const accentChip: Record<Accent, string> = {
+  primary: 'bg-primary/10 text-primary',
+  emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  sky: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+  rose: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+};
+
+const KpiCard: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  sub?: string;
+  icon: React.ElementType;
+  accent?: Accent;
+  delta?: { value: number; goodWhenNegative?: boolean };
+}> = ({ label, value, sub, icon: Icon, accent = 'primary', delta }) => {
+  const up = delta && delta.value >= 0;
+  const bad = delta ? (delta.goodWhenNegative ? up : !up) : false;
+  return (
+    <div className="rounded-xl border bg-card p-5 shadow-sm transition-colors hover:border-foreground/20">
+      <div className="flex items-start justify-between">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', accentChip[accent])}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <div className="mt-3 flex items-end gap-2">
+        <span className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+          {value}
+        </span>
+        {delta && (
+          <span
+            className={cn(
+              'mb-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium',
+              bad
+                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+            )}
+          >
+            {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+            {Math.abs(delta.value).toFixed(1)}%
+          </span>
+        )}
+      </div>
+      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  );
+};
+
+const SectionHeader: React.FC<{ title: string; description?: string; icon?: React.ElementType }> = ({
+  title,
+  description,
+  icon: Icon,
+}) => (
+  <div className="flex items-start gap-2">
+    {Icon && <Icon className="mt-0.5 h-4 w-4 text-muted-foreground" />}
+    <div>
+      <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+    </div>
+  </div>
+);
+
+/* --------------------------------- panel ---------------------------------- */
+
+const ImprovedInsightsPanel: React.FC<ImprovedInsightsPanelProps> = ({
+  insights,
   onDownload,
-  isGeneratingDocument = false
+  isGeneratingDocument = false,
 }) => {
-  const getInsightIcon = (type: string) => {
-    switch (type) {
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      case 'tip':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      default:
-        return <BarChart3 className="h-4 w-4 text-blue-500" />;
-    }
-  };
+  const usageUp = insights.usage.change >= 0;
+  const solar = insights.solar;
 
-  const getInsightCardStyle = (type: string) => {
-    switch (type) {
-      case 'warning':
-        return 'border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800';
-      case 'tip':
-        return 'border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800';
-      default:
-        return 'border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800';
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const insightAccent = (type: string): Accent =>
+    type === 'warning' ? 'amber' : type === 'tip' ? 'emerald' : 'sky';
+  const insightIcon = (type: string) =>
+    type === 'warning' ? AlertTriangle : type === 'tip' ? CheckCircle2 : Info;
 
   return (
-    <div className="space-y-8">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Bill Amount</p>
-                <p className="text-3xl font-bold text-foreground">
-                  {formatCurrency(insights.summary.totalAmount)}
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Energy Usage</p>
-                <p className="text-3xl font-bold text-foreground">{insights.usage.current}</p>
-                <p className="text-xs text-muted-foreground">kWh this month</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
-                <Zap className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Daily Average</p>
-                <p className="text-3xl font-bold text-foreground">{insights.usage.averageDaily}</p>
-                <p className="text-xs text-muted-foreground">kWh per day</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-800 flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Usage Change</p>
-                <p className={`text-3xl font-bold flex items-center gap-1 ${
-                  insights.usage.change >= 0 
-                    ? 'text-red-600 dark:text-red-400' 
-                    : 'text-green-600 dark:text-green-400'
-                }`}>
-                  {insights.usage.change >= 0 ? (
-                    <TrendingUp className="h-6 w-6" />
-                  ) : (
-                    <TrendingDown className="h-6 w-6" />
-                  )}
-                  {Math.abs(insights.usage.change).toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      {/* KPI overview */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <KpiCard
+          label="Total bill"
+          value={formatCurrency(insights.summary.totalAmount)}
+          sub={insights.summary.billingPeriod}
+          icon={IndianRupee}
+          accent="primary"
+        />
+        <KpiCard
+          label="Energy used"
+          value={`${formatNumber(insights.usage.current)}`}
+          sub="kWh this period"
+          icon={Zap}
+          accent="emerald"
+        />
+        <KpiCard
+          label="Daily average"
+          value={`${formatNumber(insights.usage.averageDaily)}`}
+          sub="kWh per day"
+          icon={CalendarDays}
+          accent="sky"
+        />
+        <KpiCard
+          label="vs last period"
+          value={`${usageUp ? '+' : '−'}${Math.abs(insights.usage.change).toFixed(1)}%`}
+          sub="change in usage"
+          icon={usageUp ? ArrowUpRight : ArrowDownRight}
+          accent={usageUp ? 'rose' : 'emerald'}
+        />
       </div>
 
-      {/* Solar Performance Section */}
-      {insights.solar && (
-        <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
-              <Sun className="h-6 w-6" />
-              Solar Performance Analysis
-            </CardTitle>
-            <CardDescription className="text-amber-700 dark:text-amber-300">
-              Your solar generated {insights.solar.actualGeneration} kWh this period
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-card border rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">Solar Offset</p>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                  {insights.solar.efficiency.toFixed(0)}%
-                </p>
-                <p className="text-xs text-muted-foreground">of your usage</p>
-                <Progress
-                  value={insights.solar.efficiency > 100 ? 100 : insights.solar.efficiency}
-                  className="mt-2"
-                />
+      {/* Solar performance */}
+      {solar && (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b bg-muted/40 px-5 py-3">
+            <SectionHeader
+              icon={Sun}
+              title="Solar performance"
+              description={`Generated ${formatNumber(solar.actualGeneration)} kWh this period`}
+            />
+            <span
+              className={cn(
+                'hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex',
+                solar.efficiency >= 50 ? accentChip.emerald : accentChip.amber,
+              )}
+            >
+              {solar.efficiency >= 50 ? 'Healthy' : 'Improvable'}
+            </span>
+          </div>
+
+          <div className="grid gap-5 p-5 lg:grid-cols-[260px_1fr]">
+            {/* Offset gauge */}
+            <div className="flex flex-col items-center justify-center rounded-lg border bg-background p-5 text-center">
+              <div
+                className="relative flex h-32 w-32 items-center justify-center rounded-full"
+                style={{
+                  background: `conic-gradient(hsl(var(--primary)) ${Math.min(
+                    solar.efficiency,
+                    100,
+                  )}%, hsl(var(--muted)) 0)`,
+                }}
+              >
+                <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-card">
+                  <span className="text-2xl font-semibold tabular-nums">
+                    {solar.efficiency.toFixed(0)}%
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">offset</span>
+                </div>
               </div>
-              <div className="text-center p-4 bg-card border rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">Generation</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {insights.solar.actualGeneration} kWh
-                </p>
-                <p className="text-xs text-muted-foreground">this period</p>
-              </div>
-              <div className="text-center p-4 bg-card border rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">Est. Savings</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {insights.solar.savingsInr != null
-                    ? formatCurrency(insights.solar.savingsInr)
-                    : '—'}
-                </p>
-                {insights.solar.effectiveTariff != null && (
-                  <p className="text-xs text-muted-foreground">
-                    @ ₹{insights.solar.effectiveTariff}/kWh
-                  </p>
-                )}
-              </div>
-              <div className="text-center p-4 bg-card border rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">CO₂ Avoided</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {insights.solar.co2AvoidedKg != null
-                    ? `${insights.solar.co2AvoidedKg} kg`
-                    : '—'}
-                </p>
-                <p className="text-xs text-muted-foreground">vs grid power</p>
-              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Share of your usage covered by solar
+              </p>
             </div>
 
-            {insights.solar.efficiency < 50 && (
-              <div className="p-4 bg-amber-100/60 dark:bg-amber-950 border border-amber-300 dark:border-amber-800 rounded-lg">
-                <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
-                  Room to grow
-                </h4>
-                <p className="text-amber-700 dark:text-amber-300 text-sm">
-                  Solar covered under half of your usage this period. Shifting heavy
-                  appliances to daylight hours and keeping panels clean can raise your
-                  self-consumption.
+            {/* Sub-metrics */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border bg-background p-4">
+                <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', accentChip.emerald)}>
+                  <Gauge className="h-4 w-4" />
+                </span>
+                <p className="mt-3 text-xl font-semibold tabular-nums">
+                  {formatNumber(solar.actualGeneration)} <span className="text-sm font-normal text-muted-foreground">kWh</span>
+                </p>
+                <p className="text-xs text-muted-foreground">Generated</p>
+              </div>
+              <div className="rounded-lg border bg-background p-4">
+                <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', accentChip.primary)}>
+                  <IndianRupee className="h-4 w-4" />
+                </span>
+                <p className="mt-3 text-xl font-semibold tabular-nums">
+                  {solar.savingsInr != null ? formatCurrency(solar.savingsInr) : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Saved{solar.effectiveTariff != null ? ` @ ₹${solar.effectiveTariff}/kWh` : ''}
                 </p>
               </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Solar offset, savings and CO₂ are calculated from your bill's generation,
-              consumption and tariff. Savings use {insights.solar.effectiveTariff != null
-                ? `₹${insights.solar.effectiveTariff}/kWh`
-                : 'a typical tariff'}. See docs/calculations.md for the formulas.
-            </p>
-          </CardContent>
-        </Card>
+              <div className="rounded-lg border bg-background p-4">
+                <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', accentChip.sky)}>
+                  <Leaf className="h-4 w-4" />
+                </span>
+                <p className="mt-3 text-xl font-semibold tabular-nums">
+                  {solar.co2AvoidedKg != null ? `${formatNumber(solar.co2AvoidedKg)} kg` : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground">CO₂ avoided</p>
+              </div>
+
+              {solar.efficiency < 50 && (
+                <div className="sm:col-span-3 flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-500/5 p-3 dark:border-amber-800/60">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <p className="text-xs text-muted-foreground">
+                    Solar covered under half of your usage. Shift heavy appliances to daylight
+                    hours and keep panels clean to raise self-consumption.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Tabbed Content */}
-      <Tabs defaultValue="insights" className="space-y-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto lg:w-[600px]">
-            <TabsTrigger value="insights" className="text-xs sm:text-sm whitespace-normal py-2">Key Insights</TabsTrigger>
-            <TabsTrigger value="breakdown" className="text-xs sm:text-sm whitespace-normal py-2">Cost Breakdown</TabsTrigger>
-            <TabsTrigger value="comparator" className="text-xs sm:text-sm whitespace-normal py-2">Solar Ranking</TabsTrigger>
-            <TabsTrigger value="recommendations" className="text-xs sm:text-sm whitespace-normal py-2">Tips</TabsTrigger>
+      {/* Detail tabs */}
+      <Tabs defaultValue="insights" className="space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="grid w-full grid-cols-2 sm:flex sm:w-auto">
+            <TabsTrigger value="insights" className="text-xs sm:text-sm">Insights</TabsTrigger>
+            <TabsTrigger value="breakdown" className="text-xs sm:text-sm">Costs</TabsTrigger>
+            <TabsTrigger value="comparator" className="text-xs sm:text-sm">Ranking</TabsTrigger>
+            <TabsTrigger value="recommendations" className="text-xs sm:text-sm">Tips</TabsTrigger>
           </TabsList>
 
           {onDownload && (
-            <Button onClick={onDownload} disabled={isGeneratingDocument} className="gap-2 w-full lg:w-auto shrink-0">
+            <Button
+              onClick={onDownload}
+              disabled={isGeneratingDocument}
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 sm:w-auto"
+            >
               {isGeneratingDocument ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Generating...
+                  Generating…
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  Download Report
+                  Export report
                 </>
               )}
             </Button>
           )}
         </div>
 
-        <TabsContent value="insights" className="space-y-4">
-          {insights.insights.map((insight, index) => (
-            <Card key={index} className={getInsightCardStyle(insight.type)}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  {getInsightIcon(insight.type)}
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground mb-1">{insight.title}</h4>
-                    <p className="text-sm text-muted-foreground">{insight.description}</p>
-                    {insight.value && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <Badge variant="outline">
-                          Current: {typeof insight.value === 'number' ? insight.value.toFixed(1) : insight.value}
-                        </Badge>
-                        {insight.compareValue && (
-                          <Badge variant="secondary">
-                            Compare: {typeof insight.compareValue === 'number' ? insight.compareValue.toFixed(1) : insight.compareValue}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
+        {/* Insights */}
+        <TabsContent value="insights" className="space-y-3">
+          {insights.insights.map((insight, index) => {
+            const Icon = insightIcon(insight.type);
+            return (
+              <div
+                key={index}
+                className="flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm"
+              >
+                <span
+                  className={cn(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                    accentChip[insightAccent(insight.type)],
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-semibold">{insight.title}</h4>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{insight.description}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            );
+          })}
         </TabsContent>
 
-        <TabsContent value="breakdown" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cost Breakdown Analysis</CardTitle>
-              <CardDescription>
-                Detailed breakdown of your electricity bill charges
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(insights.costs.breakdown).map(([category, amount]) => {
-                  const percentage = ((amount / insights.summary.totalAmount) * 100).toFixed(1);
-                  return (
-                    <div key={category} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div>
-                        <p className="font-medium text-foreground">{category}</p>
-                        <p className="text-sm text-muted-foreground">{percentage}% of total bill</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">{formatCurrency(amount)}</p>
-                      </div>
+        {/* Cost breakdown */}
+        <TabsContent value="breakdown">
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
+            <SectionHeader
+              title="Cost breakdown"
+              description="Where your bill amount goes"
+            />
+            <div className="mt-4 space-y-4">
+              {Object.entries(insights.costs.breakdown).map(([category, amount]) => {
+                const pct = insights.summary.totalAmount
+                  ? (amount / insights.summary.totalAmount) * 100
+                  : 0;
+                const isTop = category === insights.costs.largestExpense;
+                return (
+                  <div key={category}>
+                    <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        {category}
+                        {isTop && (
+                          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                            Top
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-sm tabular-nums text-muted-foreground">
+                        {formatCurrency(amount)} · {pct.toFixed(0)}%
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border-2 border-primary/20">
-                <p className="font-semibold text-foreground">Total Amount</p>
-                <p className="text-xl font-bold text-primary">{formatCurrency(insights.summary.totalAmount)}</p>
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn('h-full rounded-full', isTop ? 'bg-primary' : 'bg-primary/50')}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-5 flex items-center justify-between border-t pt-4">
+              <span className="text-sm font-medium text-muted-foreground">Total amount</span>
+              <span className="text-lg font-semibold tabular-nums">
+                {formatCurrency(insights.summary.totalAmount)}
+              </span>
+            </div>
+          </div>
         </TabsContent>
 
-        <TabsContent value="comparator" className="space-y-4">
-          {insights.solar ? (
+        {/* Ranking */}
+        <TabsContent value="comparator">
+          {solar ? (
             <SolarComparator insights={insights} />
           ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Sun className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Solar Data Available</h3>
-                <p className="text-muted-foreground">
-                  Solar comparison features are available when solar generation data is detected in your bill.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="rounded-xl border bg-card p-10 text-center shadow-sm">
+              <Sun className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">No solar data detected</h3>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+                Ranking is available when solar generation is found on your bill.
+              </p>
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="recommendations" className="space-y-4">
-          <div className="grid gap-4">
-            <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-              <CardHeader>
-                <CardTitle className="text-green-800 dark:text-green-200">Energy Efficiency Tips</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Use energy-efficient LED bulbs and appliances to reduce consumption
-                  </p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Set AC temperature to 24-26°C for optimal energy savings
-                  </p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Unplug electronic devices when not in use to avoid standby power consumption
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {insights.solar && (
-              <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
-                <CardHeader>
-                  <CardTitle className="text-amber-800 dark:text-amber-200">Solar Optimization Tips</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <Sun className="h-4 w-4 text-amber-600 mt-0.5" />
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                      Clean solar panels monthly to maintain optimal efficiency
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Sun className="h-4 w-4 text-amber-600 mt-0.5" />
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                      Schedule high-energy activities during peak solar hours (10 AM - 3 PM)
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Sun className="h-4 w-4 text-amber-600 mt-0.5" />
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                      Monitor system performance regularly and address any issues promptly
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+        {/* Tips */}
+        <TabsContent value="recommendations" className="space-y-3">
+          <RecCard
+            accent="emerald"
+            icon={Lightbulb}
+            title="Energy efficiency"
+            tips={[
+              'Switch to LED lighting and 5-star rated appliances.',
+              'Keep AC at 24–26 °C for the best efficiency-comfort balance.',
+              'Unplug idle electronics to cut standby draw.',
+            ]}
+          />
+          {solar && (
+            <RecCard
+              accent="amber"
+              icon={Sun}
+              title="Solar optimization"
+              tips={[
+                'Clean panels monthly to maintain output.',
+                'Run heavy loads during peak sun (10 AM – 3 PM).',
+                'Track performance and address dips early.',
+              ]}
+            />
+          )}
         </TabsContent>
       </Tabs>
+
+      {solar && (
+        <p className="text-xs text-muted-foreground">
+          Solar offset, savings and CO₂ are derived from your bill&apos;s generation, consumption
+          and tariff{solar.effectiveTariff != null ? ` (₹${solar.effectiveTariff}/kWh)` : ''}.
+        </p>
+      )}
     </div>
   );
 };
+
+const RecCard: React.FC<{ accent: Accent; icon: React.ElementType; title: string; tips: string[] }> = ({
+  accent,
+  icon: Icon,
+  title,
+  tips,
+}) => (
+  <div className="rounded-xl border bg-card p-5 shadow-sm">
+    <div className="flex items-center gap-2">
+      <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', accentChip[accent])}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <h3 className="text-sm font-semibold">{title}</h3>
+    </div>
+    <ul className="mt-3 space-y-2">
+      {tips.map((t, i) => (
+        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+          {t}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 export default ImprovedInsightsPanel;
